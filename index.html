@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#667eea">
+    <meta name="description" content="Never miss an assignment with automatic Google Classroom reminders">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <title>Classroom Reminder PWA</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #667eea;
+            font-size: 2em;
+        }
+        
+        .install-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .install-banner button {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+        
+        .pwa-status {
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .setup-instructions {
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .setup-instructions h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        
+        .setup-instructions ol {
+            margin-left: 20px;
+            line-height: 1.8;
+        }
+        
+        .setup-instructions code {
+            background: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        
+        .api-setup {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: monospace;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+        
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .btn-success {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .btn-success:hover {
+            background: #45a049;
+        }
+        
+        .login-section {
+            text-align: center;
+            padding: 40px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .user-info {
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .btn-danger {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .btn-danger:hover {
+            background: #ff5252;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .tasks-section {
+            margin-top: 30px;
+        }
+        
+        .tasks-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .task-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        
+        .task-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+        
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 10px;
+        }
+        
+        .task-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+            flex: 1;
+        }
+        
+        .task-subject {
+            background: #667eea;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin-left: 10px;
+        }
+        
+        .task-description {
+            color: #666;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        
+        .task-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .task-due {
+            color: #ff6b6b;
+            font-weight: 600;
+        }
+        
+        .task-reminder {
+            color: #51cf66;
+            font-size: 0.9em;
+        }
+        
+        .reminder-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .reminder-controls select {
+            padding: 5px 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+        
+        .btn-delete {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        
+        .btn-delete:hover {
+            background: #ff5252;
+        }
+        
+        .course-name {
+            color: #888;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .offline-banner {
+            background: #ff9800;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 1.5em;
+            }
+            
+            .task-footer {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+            
+            .reminder-controls {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="app-header">
+            <div>
+                <h1>📚 Classroom Reminder</h1>
+                <p class="subtitle">Progressive Web App - Install for best experience!</p>
+            </div>
+        </div>
+
+        <div class="install-banner" id="installBanner" style="display: none;">
+            <div>
+                <strong>📱 Install this app!</strong>
+                <p style="margin: 5px 0 0 0; font-size: 0.9em;">Get notifications even when browser is closed</p>
+            </div>
+            <button onclick="installPWA()">Install Now</button>
+        </div>
+
+        <div class="pwa-status" id="pwaStatus">
+            <strong>✅ PWA Installed!</strong>
+            <p style="margin-top: 5px;">You can now close the browser and still receive reminders.</p>
+        </div>
+
+        <div class="offline-banner" id="offlineBanner">
+            ⚠️ You're offline. Some features may not work.
+        </div>
+        
+        <div class="setup-instructions" id="instructions">
+            <h3>🔧 Setup Required (One-time only)</h3>
+            <p><strong>To connect to Google Classroom, you need API credentials:</strong></p>
+            <ol>
+                <li>Go to <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a></li>
+                <li>Create a new project (or select existing)</li>
+                <li>Enable "Google Classroom API" in the library</li>
+                <li>Go to "Credentials" → Create OAuth 2.0 Client ID</li>
+                <li>Application type: Web application</li>
+                <li>Add authorized JavaScript origin: Your hosting URL</li>
+                <li>Copy your Client ID and paste below</li>
+            </ol>
+        </div>
+        
+        <div class="api-setup" id="apiSetup" style="display: none;">
+            <h3>Enter Your Google API Credentials</h3>
+            <div class="form-group">
+                <label>Google Client ID</label>
+                <input type="text" id="clientId" placeholder="xxxxx.apps.googleusercontent.com">
+            </div>
+            <button class="btn-primary" onclick="saveClientId()">Save & Continue</button>
+        </div>
+        
+        <div id="loginSection" style="display: none;">
+            <div class="login-section">
+                <h2>🔐 Sign in with Google</h2>
+                <p>Connect your Google account to sync Classroom assignments</p>
+                <button class="btn-success" onclick="signIn()" style="margin-top: 20px;">
+                    Sign in with Google
+                </button>
+            </div>
+        </div>
+        
+        <div id="userInfo" style="display: none;" class="user-info">
+            <div>
+                <strong>✅ Logged in as: </strong><span id="userName"></span>
+            </div>
+            <button class="btn-danger" onclick="signOut()">Sign Out</button>
+        </div>
+        
+        <div id="loadingSection" style="display: none;" class="loading">
+            <div class="spinner"></div>
+            <p>Loading your assignments from Google Classroom...</p>
+        </div>
+        
+        <div id="syncSection" style="display: none;">
+            <button class="btn-success" onclick="syncAssignments()">
+                🔄 Sync Assignments from Google Classroom
+            </button>
+            <button class="btn-primary" onclick="requestNotificationPermission()">
+                🔔 Enable Notifications
+            </button>
+        </div>
+        
+        <div class="tasks-section">
+            <h2>My Assignments</h2>
+            <div id="tasksList">
+                <div class="empty-state">
+                    <div style="font-size: 60px;">📝</div>
+                    <p>No assignments loaded yet. Complete setup and sync!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script>
+        // ========================================
+        // 🔧 DEVELOPER: PUT YOUR CLIENT ID HERE
+        // ========================================
+        const GOOGLE_CLIENT_ID = '303610005307-29q0bc99o8eb3frt533mibmu4km78s76.apps.googleusercontent.com';
+        // ========================================
+        
+        let deferredPrompt;
+        let clientId = GOOGLE_CLIENT_ID;
+        let accessToken = '';
+        let assignments = [];
+        let notificationPermission = false;
+        let tokenClient;
+        
+        // PWA Installation
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installBanner').style.display = 'flex';
+        });
+
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('PWA installed');
+                        document.getElementById('installBanner').style.display = 'none';
+                        document.getElementById('pwaStatus').style.display = 'block';
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        }
+
+        // Check if running as PWA
+        function isPWA() {
+            return window.matchMedia('(display-mode: standalone)').matches ||
+                   window.navigator.standalone === true;
+        }
+
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(registration => console.log('SW registered:', registration))
+                    .catch(err => console.log('SW registration failed:', err));
+            });
+        }
+
+        // Online/Offline Status
+        window.addEventListener('online', () => {
+            document.getElementById('offlineBanner').style.display = 'none';
+        });
+
+        window.addEventListener('offline', () => {
+            document.getElementById('offlineBanner').style.display = 'block';
+        });
+        
+        // Check if Client ID is set
+        window.onload = function() {
+            if (isPWA()) {
+                document.getElementById('pwaStatus').style.display = 'block';
+            }
+
+            if (GOOGLE_CLIENT_ID === 'YOUR_CLIENT_ID_HERE.apps.googleusercontent.com') {
+                document.getElementById('apiSetup').style.display = 'block';
+                document.getElementById('instructions').style.display = 'block';
+            } else {
+                document.getElementById('apiSetup').style.display = 'none';
+                document.getElementById('instructions').style.display = 'none';
+                document.getElementById('loginSection').style.display = 'block';
+                initializeGoogleAuth();
+            }
+        };
+        
+        // Save Client ID
+        function saveClientId() {
+            const input = document.getElementById('clientId').value.trim();
+            if (!input) {
+                alert('Please enter a valid Client ID');
+                return;
+            }
+            clientId = input;
+            document.getElementById('apiSetup').style.display = 'none';
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('instructions').style.display = 'none';
+            initializeGoogleAuth();
+        }
+        
+        // Initialize Google Auth
+        function initializeGoogleAuth() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: clientId,
+                scope: 'https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me.readonly',
+                callback: (response) => {
+                    if (response.access_token) {
+                        accessToken = response.access_token;
+                        onSignInSuccess();
+                    }
+                },
+            });
+        }
+        
+        // Sign In
+        function signIn() {
+            if (tokenClient) {
+                tokenClient.requestAccessToken();
+            } else {
+                alert('Please enter your Client ID first');
+            }
+        }
+        
+        // On successful sign in
+        function onSignInSuccess() {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('userInfo').style.display = 'flex';
+            document.getElementById('syncSection').style.display = 'block';
+            document.getElementById('userName').textContent = 'Google User';
+            
+            syncAssignments();
+        }
+        
+        // Sign Out
+        function signOut() {
+            accessToken = '';
+            assignments = [];
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('userInfo').style.display = 'none';
+            document.getElementById('syncSection').style.display = 'none';
+            renderAssignments();
+        }
+        
+        // Sync Assignments from Google Classroom
+        async function syncAssignments() {
+            if (!accessToken) {
+                alert('Please sign in first');
+                return;
+            }
+            
+            document.getElementById('loadingSection').style.display = 'block';
+            assignments = [];
+            
+            try {
+                const coursesResponse = await fetch('https://classroom.googleapis.com/v1/courses?courseStates=ACTIVE', {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                
+                const coursesData = await coursesResponse.json();
+                const courses = coursesData.courses || [];
+                
+                for (const course of courses) {
+                    const assignmentsResponse = await fetch(
+                        `https://classroom.googleapis.com/v1/courses/${course.id}/courseWork`, 
+                        { headers: { 'Authorization': `Bearer ${accessToken}` } }
+                    );
+                    
+                    const assignmentsData = await assignmentsResponse.json();
+                    const courseWork = assignmentsData.courseWork || [];
+                    
+                    courseWork.forEach(work => {
+                        if (work.dueDate) {
+                            const dueDate = new Date(
+                                work.dueDate.year,
+                                work.dueDate.month - 1,
+                                work.dueDate.day,
+                                work.dueTime?.hours || 23,
+                                work.dueTime?.minutes || 59
+                            );
+                            
+                            assignments.push({
+                                id: work.id,
+                                title: work.title,
+                                description: work.description || 'No description',
+                                courseName: course.name,
+                                dueDate: dueDate,
+                                reminderMinutes: 60,
+                                reminded: false,
+                                link: work.alternateLink
+                            });
+                        }
+                    });
+                }
+                
+                document.getElementById('loadingSection').style.display = 'none';
+                renderAssignments();
+                
+                if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                    const registration = await navigator.serviceWorker.ready;
+                    await registration.sync.register('sync-assignments');
+                }
+                
+                alert(`✅ Synced ${assignments.length} assignments!`);
+                checkReminders();
+                setInterval(checkReminders, 60000);
+                
+            } catch (error) {
+                document.getElementById('loadingSection').style.display = 'none';
+                console.error('Error syncing:', error);
+                alert('❌ Error syncing assignments. Check console for details.');
+            }
+        }
+        
+        // Render Assignments
+        function renderAssignments() {
+            const tasksList = document.getElementById('tasksList');
+            
+            if (assignments.length === 0) {
+                tasksList.innerHTML = `
+                    <div class="empty-state">
+                        <div style="font-size: 60px;">📝</div>
+                        <p>No assignments found. Click "Sync Assignments" to load from Google Classroom.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            assignments.sort((a, b) => a.dueDate - b.dueDate);
+            
+            tasksList.innerHTML = assignments.map(task => `
+                <div class="task-card">
+                    <div class="task-header">
+                        <div>
+                            <div class="task-title">${task.title}</div>
+                            <div class="course-name">📖 ${task.courseName}</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="task-subject">Classroom</div>
+                            <button class="btn-delete" onclick="deleteAssignment('${task.id}')" title="Remove this assignment">✕</button>
+                        </div>
+                    </div>
+                    <div class="task-description">${task.description}</div>
+                    <div class="task-footer">
+                        <div>
+                            <div class="task-due">📅 Due: ${formatDate(task.dueDate)}</div>
+                            <div class="task-reminder">⏰ Reminder: ${task.reminderMinutes} min before</div>
+                        </div>
+                        <div class="reminder-controls">
+                            <select onchange="updateReminder('${task.id}', this.value)">
+                                <option value="5" ${task.reminderMinutes === 5 ? 'selected' : ''}>5 min</option>
+                                <option value="15" ${task.reminderMinutes === 15 ? 'selected' : ''}>15 min</option>
+                                <option value="30" ${task.reminderMinutes === 30 ? 'selected' : ''}>30 min</option>
+                                <option value="60" ${task.reminderMinutes === 60 ? 'selected' : ''}>1 hour</option>
+                                <option value="120" ${task.reminderMinutes === 120 ? 'selected' : ''}>2 hours</option>
+                                <option value="1440" ${task.reminderMinutes === 1440 ? 'selected' : ''}>1 day</option>
+                            </select>
+                            ${task.link ? `<a href="${task.link}" target="_blank"><button class="btn-primary btn-small">Open</button></a>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Update reminder time
+        function updateReminder(taskId, minutes) {
+            const task = assignments.find(t => t.id === taskId);
+            if (task) {
+                task.reminderMinutes = parseInt(minutes);
+                task.reminded = false;
+                renderAssignments();
+            }
+        }
+        
+        // Delete assignment
+        function deleteAssignment(taskId) {
+            if (confirm('Are you sure you want to remove this assignment from your list?')) {
+                assignments = assignments.filter(t => t.id !== taskId);
+                renderAssignments();
+            }
+        }
+        
+        // Request notification permission
+        function requestNotificationPermission() {
+            if ("Notification" in window) {
+                Notification.requestPermission().then(function(permission) {
+                    if (permission === "granted") {
+                        notificationPermission = true;
+                        new Notification("Notifications Enabled! 🎉", {
+                            body: "You'll receive reminders for your assignments.",
+                            icon: "/icon-192.png"
+                        });
+                    }
+                });
+            }
+        }
+        
+        // Check for reminders
+        function checkReminders() {
+            const now = new Date();
+            
+            assignments.forEach(task => {
+                if (!task.reminded) {
+                    const reminderTime = new Date(task.dueDate.getTime() - (task.reminderMinutes * 60 * 1000));
+                    
+                    if (now >= reminderTime) {
+                        sendNotification(task);
+                        task.reminded = true;
+                    }
+                }
+            });
+        }
+        
+        // Send notification
+        function sendNotification(task) {
+            // Play sound
+            playNotificationSound();
+            
+            if (notificationPermission && "Notification" in window) {
+                new Notification(`📚 Assignment Due: ${task.title}`, {
+                    body: `Course: ${task.courseName}\nDue: ${formatDate(task.dueDate)}`,
+                    icon: "/icon-192.png",
+                    badge: "/icon-192.png",
+                    requireInteraction: true,
+                    tag: task.id
+                });
+            } else {
+                alert(`⏰ REMINDER: ${task.title}\nCourse: ${task.courseName}\nDue: ${formatDate(task.dueDate)}`);
+            }
+        }
+        
+        // Play notification sound
+        function playNotificationSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.5);
+            } catch (error) {
+                console.log('Could not play sound:', error);
+            }
+        }
+        
+        // Format date
+        function formatDate(date) {
+            const options = { 
+                month: 'short', 
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit', 
+                minute: '2-digit'
+            };
+            return date.toLocaleString('en-US', options);
+        }
+    </script>
+</body>
+</html>
