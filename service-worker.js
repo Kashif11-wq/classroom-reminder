@@ -1,9 +1,9 @@
 const CACHE_NAME = 'classroom-reminder-v1';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  'https://accounts.google.com/gsi/client'
+  '/classroom-reminder/',
+  '/classroom-reminder/index.html',
+  '/classroom-reminder/styles.css',
+  '/classroom-reminder/script.js',
 ];
 
 // Install Service Worker
