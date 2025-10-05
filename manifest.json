@@ -2,7 +2,7 @@
   "name": "Classroom Reminder App",
   "short_name": "Classroom",
   "description": "Never miss an assignment with automatic Google Classroom reminders",
-  "start_url": "/",
+  "start_url": "/classroom-reminder/index.html",
   "display": "standalone",
   "background_color": "#667eea",
   "theme_color": "#667eea",
