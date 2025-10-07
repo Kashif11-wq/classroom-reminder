@@ -123,12 +123,15 @@
             font-weight: 600;
         }
         
-        input {
+        input, select {
             width: 100%;
             padding: 10px;
             border: 2px solid #ddd;
             border-radius: 5px;
             font-size: 14px;
+        }
+
+        input {
             font-family: monospace;
         }
         
@@ -219,6 +222,30 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+        
+        .filter-section {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .filter-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .filter-controls .form-group {
+            flex: 1;
+            margin-bottom: 0;
         }
         
         .tasks-section {
@@ -365,6 +392,14 @@
             .reminder-controls {
                 width: 100%;
             }
+
+            .filter-controls {
+                flex-direction: column;
+            }
+
+            .filter-controls .form-group {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -447,6 +482,19 @@
                 🔔 Enable Notifications
             </button>
         </div>
+
+        <div class="filter-section" id="filterSection" style="display: none;">
+            <h3>🎯 Filter Assignments</h3>
+            <div class="filter-controls">
+                <div class="form-group">
+                    <label>Select Section/Course</label>
+                    <select id="sectionFilter" onchange="applyFilter()">
+                        <option value="all">All Sections</option>
+                    </select>
+                </div>
+                <button class="btn-primary" onclick="applyFilter()">Apply Filter</button>
+            </div>
+        </div>
         
         <div class="tasks-section">
             <h2>My Assignments</h2>
@@ -471,8 +519,10 @@
         let clientId = GOOGLE_CLIENT_ID;
         let accessToken = '';
         let assignments = [];
+        let allAssignments = []; // Store all assignments before filtering
         let notificationPermission = false;
         let tokenClient;
+        let selectedSection = 'all';
         
         // PWA Installation
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -587,9 +637,12 @@
         function signOut() {
             accessToken = '';
             assignments = [];
+            allAssignments = [];
+            selectedSection = 'all';
             document.getElementById('loginSection').style.display = 'block';
             document.getElementById('userInfo').style.display = 'none';
             document.getElementById('syncSection').style.display = 'none';
+            document.getElementById('filterSection').style.display = 'none';
             renderAssignments();
         }
         
@@ -601,6 +654,7 @@
             }
             
             document.getElementById('loadingSection').style.display = 'block';
+            allAssignments = [];
             assignments = [];
             
             try {
@@ -610,6 +664,8 @@
                 
                 const coursesData = await coursesResponse.json();
                 const courses = coursesData.courses || [];
+                
+                const now = new Date();
                 
                 for (const course of courses) {
                     const assignmentsResponse = await fetch(
@@ -630,29 +686,42 @@
                                 work.dueTime?.minutes || 59
                             );
                             
-                            assignments.push({
-                                id: work.id,
-                                title: work.title,
-                                description: work.description || 'No description',
-                                courseName: course.name,
-                                dueDate: dueDate,
-                                reminderMinutes: 60,
-                                reminded: false,
-                                link: work.alternateLink
-                            });
+                            // Only add assignments with future due dates
+                            if (dueDate > now) {
+                                allAssignments.push({
+                                    id: work.id,
+                                    title: work.title,
+                                    description: work.description || 'No description',
+                                    courseName: course.name,
+                                    courseId: course.id,
+                                    section: course.section || 'No Section',
+                                    dueDate: dueDate,
+                                    reminderMinutes: 60,
+                                    reminded: false,
+                                    link: work.alternateLink
+                                });
+                            }
                         }
                     });
                 }
                 
                 document.getElementById('loadingSection').style.display = 'none';
-                renderAssignments();
+                
+                // Populate section filter
+                populateSectionFilter();
+                
+                // Show filter section
+                document.getElementById('filterSection').style.display = 'block';
+                
+                // Apply initial filter (show all)
+                applyFilter();
                 
                 if ('serviceWorker' in navigator && 'SyncManager' in window) {
                     const registration = await navigator.serviceWorker.ready;
                     await registration.sync.register('sync-assignments');
                 }
                 
-                alert(`✅ Synced ${assignments.length} assignments!`);
+                alert(`✅ Synced ${allAssignments.length} upcoming assignments!`);
                 checkReminders();
                 setInterval(checkReminders, 60000);
                 
@@ -661,6 +730,35 @@
                 console.error('Error syncing:', error);
                 alert('❌ Error syncing assignments. Check console for details.');
             }
+        }
+
+        // Populate section filter dropdown
+        function populateSectionFilter() {
+            const sectionFilter = document.getElementById('sectionFilter');
+            sectionFilter.innerHTML = '<option value="all">All Sections</option>';
+            
+            // Get unique course names
+            const uniqueCourses = [...new Set(allAssignments.map(a => a.courseName))];
+            
+            uniqueCourses.sort().forEach(courseName => {
+                const option = document.createElement('option');
+                option.value = courseName;
+                option.textContent = courseName;
+                sectionFilter.appendChild(option);
+            });
+        }
+
+        // Apply filter
+        function applyFilter() {
+            selectedSection = document.getElementById('sectionFilter').value;
+            
+            if (selectedSection === 'all') {
+                assignments = [...allAssignments];
+            } else {
+                assignments = allAssignments.filter(a => a.courseName === selectedSection);
+            }
+            
+            renderAssignments();
         }
         
         // Render Assignments
@@ -671,7 +769,7 @@
                 tasksList.innerHTML = `
                     <div class="empty-state">
                         <div style="font-size: 60px;">📝</div>
-                        <p>No assignments found. Click "Sync Assignments" to load from Google Classroom.</p>
+                        <p>${allAssignments.length > 0 ? 'No assignments found for the selected section.' : 'No assignments found. Click "Sync Assignments" to load from Google Classroom.'}</p>
                     </div>
                 `;
                 return;
@@ -715,19 +813,19 @@
         
         // Update reminder time
         function updateReminder(taskId, minutes) {
-            const task = assignments.find(t => t.id === taskId);
+            const task = allAssignments.find(t => t.id === taskId);
             if (task) {
                 task.reminderMinutes = parseInt(minutes);
                 task.reminded = false;
-                renderAssignments();
+                applyFilter(); // Re-render with filter
             }
         }
         
         // Delete assignment
         function deleteAssignment(taskId) {
             if (confirm('Are you sure you want to remove this assignment from your list?')) {
-                assignments = assignments.filter(t => t.id !== taskId);
-                renderAssignments();
+                allAssignments = allAssignments.filter(t => t.id !== taskId);
+                applyFilter(); // Re-render with filter
             }
         }
         
@@ -750,7 +848,7 @@
         function checkReminders() {
             const now = new Date();
             
-            assignments.forEach(task => {
+            allAssignments.forEach(task => {
                 if (!task.reminded) {
                     const reminderTime = new Date(task.dueDate.getTime() - (task.reminderMinutes * 60 * 1000));
                     
@@ -760,6 +858,14 @@
                     }
                 }
             });
+
+            // Remove past due assignments automatically
+            const initialLength = allAssignments.length;
+            allAssignments = allAssignments.filter(task => task.dueDate > now);
+            
+            if (allAssignments.length < initialLength) {
+                applyFilter(); // Refresh display if assignments were removed
+            }
         }
         
         // Send notification
@@ -783,37 +889,4 @@
         // Play notification sound
         function playNotificationSound() {
             try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                oscillator.frequency.value = 800;
-                oscillator.type = 'sine';
-                
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-                
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.5);
-            } catch (error) {
-                console.log('Could not play sound:', error);
-            }
-        }
-        
-        // Format date
-        function formatDate(date) {
-            const options = { 
-                month: 'short', 
-                day: 'numeric',
-                year: 'numeric',
-                hour: '2-digit', 
-                minute: '2-digit'
-            };
-            return date.toLocaleString('en-US', options);
-        }
-    </script>
-</body>
-</html>
+                const audioContext = new (window.AudioContext || window.webkitA
