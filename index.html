@@ -270,6 +270,11 @@
             border-color: #667eea;
             box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
         }
+
+        .task-card.updated {
+            border-color: #ff9800;
+            background: #fff3e0;
+        }
         
         .task-header {
             display: flex;
@@ -374,6 +379,36 @@
             display: none;
         }
 
+        .sync-status {
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+            border-radius: 10px;
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 0.9em;
+        }
+
+        .sync-status.syncing {
+            background: #fff3e0;
+            border-color: #ff9800;
+        }
+
+        .update-badge {
+            background: #ff9800;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            margin-left: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 15px;
@@ -408,7 +443,7 @@
         <div class="app-header">
             <div>
                 <h1>📚 Classroom Reminder</h1>
-                <p class="subtitle">Progressive Web App - Install for best experience!</p>
+                <p class="subtitle">Progressive Web App - Auto-syncs with Google Classroom!</p>
             </div>
         </div>
 
@@ -427,6 +462,10 @@
 
         <div class="offline-banner" id="offlineBanner">
             ⚠️ You're offline. Some features may not work.
+        </div>
+
+        <div class="sync-status" id="syncStatus">
+            🔄 Last synced: Never | Auto-sync: Every 5 minutes
         </div>
         
         <div class="setup-instructions" id="instructions">
@@ -475,8 +514,8 @@
         </div>
         
         <div id="syncSection" style="display: none;">
-            <button class="btn-success" onclick="syncAssignments()">
-                🔄 Sync Assignments from Google Classroom
+            <button class="btn-success" onclick="syncAssignments(true)">
+                🔄 Sync Now
             </button>
             <button class="btn-primary" onclick="requestNotificationPermission()">
                 🔔 Enable Notifications
@@ -513,16 +552,20 @@
         // 🔧 DEVELOPER: PUT YOUR CLIENT ID HERE
         // ========================================
         const GOOGLE_CLIENT_ID = '303610005307-29q0bc99o8eb3frt533mibmu4km78s76.apps.googleusercontent.com';
+        const AUTO_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
         // ========================================
         
         let deferredPrompt;
         let clientId = GOOGLE_CLIENT_ID;
         let accessToken = '';
         let assignments = [];
-        let allAssignments = []; // Store all assignments before filtering
+        let allAssignments = [];
         let notificationPermission = false;
         let tokenClient;
         let selectedSection = 'all';
+        let autoSyncInterval = null;
+        let lastSyncTime = null;
+        let updatedAssignments = new Set();
         
         // PWA Installation
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -563,6 +606,9 @@
         // Online/Offline Status
         window.addEventListener('online', () => {
             document.getElementById('offlineBanner').style.display = 'none';
+            if (accessToken) {
+                syncAssignments(false); // Auto-sync when coming back online
+            }
         });
 
         window.addEventListener('offline', () => {
@@ -628,9 +674,11 @@
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('userInfo').style.display = 'flex';
             document.getElementById('syncSection').style.display = 'block';
+            document.getElementById('syncStatus').style.display = 'block';
             document.getElementById('userName').textContent = 'Google User';
             
-            syncAssignments();
+            syncAssignments(true);
+            startAutoSync();
         }
         
         // Sign Out
@@ -639,23 +687,71 @@
             assignments = [];
             allAssignments = [];
             selectedSection = 'all';
+            stopAutoSync();
             document.getElementById('loginSection').style.display = 'block';
             document.getElementById('userInfo').style.display = 'none';
             document.getElementById('syncSection').style.display = 'none';
             document.getElementById('filterSection').style.display = 'none';
+            document.getElementById('syncStatus').style.display = 'none';
             renderAssignments();
+        }
+
+        // Start automatic syncing
+        function startAutoSync() {
+            if (autoSyncInterval) {
+                clearInterval(autoSyncInterval);
+            }
+            autoSyncInterval = setInterval(() => {
+                if (navigator.onLine && accessToken) {
+                    syncAssignments(false);
+                }
+            }, AUTO_SYNC_INTERVAL);
+        }
+
+        // Stop automatic syncing
+        function stopAutoSync() {
+            if (autoSyncInterval) {
+                clearInterval(autoSyncInterval);
+                autoSyncInterval = null;
+            }
+        }
+
+        // Update sync status display
+        function updateSyncStatus(isSyncing = false) {
+            const syncStatus = document.getElementById('syncStatus');
+            if (isSyncing) {
+                syncStatus.className = 'sync-status syncing';
+                syncStatus.innerHTML = '🔄 Syncing with Google Classroom...';
+            } else {
+                syncStatus.className = 'sync-status';
+                const timeStr = lastSyncTime ? new Date(lastSyncTime).toLocaleTimeString() : 'Never';
+                syncStatus.innerHTML = `✅ Last synced: ${timeStr} | Auto-sync: Every 5 minutes`;
+            }
         }
         
         // Sync Assignments from Google Classroom
-        async function syncAssignments() {
+        async function syncAssignments(showLoading = true) {
             if (!accessToken) {
                 alert('Please sign in first');
                 return;
             }
             
-            document.getElementById('loadingSection').style.display = 'block';
-            allAssignments = [];
-            assignments = [];
+            if (showLoading) {
+                document.getElementById('loadingSection').style.display = 'block';
+            }
+            updateSyncStatus(true);
+            
+            const previousAssignments = new Map();
+            allAssignments.forEach(a => {
+                previousAssignments.set(a.id, {
+                    dueDate: a.dueDate,
+                    reminderMinutes: a.reminderMinutes,
+                    reminded: a.reminded
+                });
+            });
+            
+            const newAllAssignments = [];
+            updatedAssignments.clear();
             
             try {
                 const coursesResponse = await fetch('https://classroom.googleapis.com/v1/courses?courseStates=ACTIVE', {
@@ -686,9 +782,23 @@
                                 work.dueTime?.minutes || 59
                             );
                             
-                            // Only add assignments with future due dates
                             if (dueDate > now) {
-                                allAssignments.push({
+                                const previous = previousAssignments.get(work.id);
+                                let reminderMinutes = 60;
+                                let reminded = false;
+                                
+                                if (previous) {
+                                    reminderMinutes = previous.reminderMinutes;
+                                    
+                                    if (previous.dueDate.getTime() !== dueDate.getTime()) {
+                                        updatedAssignments.add(work.id);
+                                        reminded = false;
+                                    } else {
+                                        reminded = previous.reminded;
+                                    }
+                                }
+                                
+                                newAllAssignments.push({
                                     id: work.id,
                                     title: work.title,
                                     description: work.description || 'No description',
@@ -696,8 +806,8 @@
                                     courseId: course.id,
                                     section: course.section || 'No Section',
                                     dueDate: dueDate,
-                                    reminderMinutes: 60,
-                                    reminded: false,
+                                    reminderMinutes: reminderMinutes,
+                                    reminded: reminded,
                                     link: work.alternateLink
                                 });
                             }
@@ -705,15 +815,16 @@
                     });
                 }
                 
-                document.getElementById('loadingSection').style.display = 'none';
+                allAssignments = newAllAssignments;
+                lastSyncTime = Date.now();
                 
-                // Populate section filter
+                if (showLoading) {
+                    document.getElementById('loadingSection').style.display = 'none';
+                }
+                updateSyncStatus(false);
+                
                 populateSectionFilter();
-                
-                // Show filter section
                 document.getElementById('filterSection').style.display = 'block';
-                
-                // Apply initial filter (show all)
                 applyFilter();
                 
                 if ('serviceWorker' in navigator && 'SyncManager' in window) {
@@ -721,14 +832,26 @@
                     await registration.sync.register('sync-assignments');
                 }
                 
-                alert(`✅ Synced ${allAssignments.length} upcoming assignments!`);
+                if (showLoading) {
+                    const updateCount = updatedAssignments.size;
+                    if (updateCount > 0) {
+                        alert(`✅ Synced ${allAssignments.length} assignments!\n🔄 ${updateCount} assignment(s) had due date changes.`);
+                    } else {
+                        alert(`✅ Synced ${allAssignments.length} upcoming assignments!`);
+                    }
+                }
+                
                 checkReminders();
-                setInterval(checkReminders, 60000);
                 
             } catch (error) {
-                document.getElementById('loadingSection').style.display = 'none';
+                if (showLoading) {
+                    document.getElementById('loadingSection').style.display = 'none';
+                }
+                updateSyncStatus(false);
                 console.error('Error syncing:', error);
-                alert('❌ Error syncing assignments. Check console for details.');
+                if (showLoading) {
+                    alert('❌ Error syncing assignments. Check console for details.');
+                }
             }
         }
 
@@ -737,7 +860,6 @@
             const sectionFilter = document.getElementById('sectionFilter');
             sectionFilter.innerHTML = '<option value="all">All Sections</option>';
             
-            // Get unique course names
             const uniqueCourses = [...new Set(allAssignments.map(a => a.courseName))];
             
             uniqueCourses.sort().forEach(courseName => {
@@ -769,7 +891,7 @@
                 tasksList.innerHTML = `
                     <div class="empty-state">
                         <div style="font-size: 60px;">📝</div>
-                        <p>${allAssignments.length > 0 ? 'No assignments found for the selected section.' : 'No assignments found. Click "Sync Assignments" to load from Google Classroom.'}</p>
+                        <p>${allAssignments.length > 0 ? 'No assignments found for the selected section.' : 'No assignments found. Click "Sync Now" to load from Google Classroom.'}</p>
                     </div>
                 `;
                 return;
@@ -777,11 +899,16 @@
             
             assignments.sort((a, b) => a.dueDate - b.dueDate);
             
-            tasksList.innerHTML = assignments.map(task => `
-                <div class="task-card">
+            tasksList.innerHTML = assignments.map(task => {
+                const isUpdated = updatedAssignments.has(task.id);
+                return `
+                <div class="task-card ${isUpdated ? 'updated' : ''}">
                     <div class="task-header">
                         <div>
-                            <div class="task-title">${task.title}</div>
+                            <div class="task-title">
+                                ${task.title}
+                                ${isUpdated ? '<span class="update-badge">Due Date Updated</span>' : ''}
+                            </div>
                             <div class="course-name">📖 ${task.courseName}</div>
                         </div>
                         <div style="display: flex; align-items: center; gap: 10px;">
@@ -808,7 +935,16 @@
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
+
+            // Auto-clear the update badges after 10 seconds
+            if (updatedAssignments.size > 0) {
+                setTimeout(() => {
+                    updatedAssignments.clear();
+                    renderAssignments();
+                }, 10000);
+            }
         }
         
         // Update reminder time
@@ -817,7 +953,7 @@
             if (task) {
                 task.reminderMinutes = parseInt(minutes);
                 task.reminded = false;
-                applyFilter(); // Re-render with filter
+                applyFilter();
             }
         }
         
@@ -825,7 +961,7 @@
         function deleteAssignment(taskId) {
             if (confirm('Are you sure you want to remove this assignment from your list?')) {
                 allAssignments = allAssignments.filter(t => t.id !== taskId);
-                applyFilter(); // Re-render with filter
+                applyFilter();
             }
         }
         
@@ -864,13 +1000,15 @@
             allAssignments = allAssignments.filter(task => task.dueDate > now);
             
             if (allAssignments.length < initialLength) {
-                applyFilter(); // Refresh display if assignments were removed
+                applyFilter();
             }
         }
+
+        // Start reminder checking interval
+        setInterval(checkReminders, 60000);
         
         // Send notification
         function sendNotification(task) {
-            // Play sound
             playNotificationSound();
             
             if (notificationPermission && "Notification" in window) {
