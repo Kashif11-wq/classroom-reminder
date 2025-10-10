@@ -739,33 +739,47 @@
         </div>
 
         <div class="contact-section" id="contactSection" style="display: none;">
-            <h3>📱 Developer Contact Information</h3>
-            <div id="contactDisplay" class="contact-grid"></div>
-            <button class="btn-edit" onclick="toggleEditContact()">✏️ Edit Contact Info</button>
-        </div>
-
-        <div id="contactEditForm" style="display: none;">
-            <div class="contact-grid">
-                <div class="contact-item">
-                    <label>WhatsApp Number</label>
-                    <input type="tel" id="whatsappInput" placeholder="e.g., +92 123 456 7890">
+            <div class="contact-header">
+                <h3>👨‍💼 Developer Contact Information</h3>
+                <button class="btn-edit" id="editContactBtn" onclick="requestDevPassword()" style="display: none;">✏️ Edit</button>
+            </div>
+            <div id="contactDisplay" class="contact-grid contact-display-wrapper active"></div>
+            <div id="contactEditForm" class="contact-form-wrapper">
+                <div class="contact-grid">
+                    <div class="contact-card">
+                        <label>Developer Name</label>
+                        <input type="text" id="developerNameInput" placeholder="e.g., John Doe">
+                    </div>
+                    <div class="contact-card">
+                        <label>WhatsApp Number</label>
+                        <input type="tel" id="whatsappInput" placeholder="e.g., +92 123 456 7890">
+                    </div>
+                    <div class="contact-card">
+                        <label>LinkedIn Profile</label>
+                        <input type="url" id="linkedinInput" placeholder="e.g., https://linkedin.com/in/username">
+                    </div>
+                    <div class="contact-card">
+                        <label>Gmail</label>
+                        <input type="email" id="gmailInput" placeholder="e.g., your.email@gmail.com">
+                    </div>
                 </div>
-                <div class="contact-item">
-                    <label>LinkedIn Profile</label>
-                    <input type="url" id="linkedinInput" placeholder="e.g., https://linkedin.com/in/username">
-                </div>
-                <div class="contact-item">
-                    <label>Gmail</label>
-                    <input type="email" id="gmailInput" placeholder="e.g., your.email@gmail.com">
-                </div>
-                <div class="contact-item">
-                    <label>Developer Phone</label>
-                    <input type="tel" id="phoneInput" placeholder="e.g., +92 123 456 7890">
+                <div class="contact-buttons-container">
+                    <button class="btn-save" onclick="saveContactInfo()">💾 Save Changes</button>
+                    <button class="btn-cancel" onclick="cancelEditContact()">❌ Cancel</button>
                 </div>
             </div>
-            <div style="display: flex; gap: 10px;">
-                <button class="btn-save" onclick="saveContactInfo()">💾 Save</button>
-                <button class="btn-cancel" onclick="toggleEditContact()">❌ Cancel</button>
+        </div>
+
+        <div id="passwordModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; justify-content: center; align-items: center;">
+            <div style="background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-width: 400px; width: 90%;">
+                <h3 style="color: #333; margin-bottom: 20px; text-align: center;">🔐 Developer Access</h3>
+                <p style="color: #666; margin-bottom: 20px; text-align: center;">Enter developer password to edit contact information</p>
+                <input type="password" id="passwordInput" placeholder="Enter password" style="width: 100%; padding: 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 20px;">
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button class="btn-save" onclick="verifyPassword()">✓ Verify</button>
+                    <button class="btn-cancel" onclick="closePasswordModal()">✕ Cancel</button>
+                </div>
+                <p id="passwordError" style="color: #ff6b6b; text-align: center; margin-top: 15px; display: none; font-size: 0.9em;">❌ Incorrect password. Try again.</p>
             </div>
         </div>
         
@@ -804,9 +818,11 @@
             whatsapp: '',
             linkedin: '',
             gmail: '',
-            phone: ''
+            developerName: ''
         };
         let editingContact = false;
+        let isDevMode = false;
+        const DEVELOPER_PASSWORD = '1234'; // Change this to your desired password
         
         // PWA Installation
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -1313,93 +1329,117 @@
             }
         }
 
-        function saveContactInfo() {
-            contactInfo.whatsapp = document.getElementById('whatsappInput').value.trim();
-            contactInfo.linkedin = document.getElementById('linkedinInput').value.trim();
-            contactInfo.gmail = document.getElementById('gmailInput').value.trim();
-            contactInfo.phone = document.getElementById('phoneInput').value.trim();
-            
-            localStorage.setItem('contactInfo', JSON.stringify(contactInfo));
-            displayContactInfo();
-            toggleEditContact();
-            alert('✅ Contact information saved successfully!');
-        }
-
         function displayContactInfo() {
             const contactDisplay = document.getElementById('contactDisplay');
             let html = '';
 
-            if (contactInfo.whatsapp) {
-                html += `
-                    <div class="contact-item-display">
-                        <div>
-                            <strong>📱 WhatsApp:</strong><br>
-                            <a href="https://wa.me/${contactInfo.whatsapp.replace(/\D/g, '')}" target="_blank">${contactInfo.whatsapp}</a>
+            if (!contactInfo.developerName && !contactInfo.whatsapp && !contactInfo.linkedin && !contactInfo.gmail) {
+                html = '<div class="contact-empty">No contact information available</div>';
+            } else {
+                if (contactInfo.developerName) {
+                    html += `
+                        <div class="contact-display-card">
+                            <div class="contact-label">👨‍💼 Developer Name</div>
+                            <div class="contact-value">${contactInfo.developerName}</div>
                         </div>
-                    </div>
-                `;
-            }
+                    `;
+                }
 
-            if (contactInfo.linkedin) {
-                html += `
-                    <div class="contact-item-display">
-                        <div>
-                            <strong>🔗 LinkedIn:</strong><br>
-                            <a href="${contactInfo.linkedin}" target="_blank">${contactInfo.linkedin}</a>
+                if (contactInfo.whatsapp) {
+                    html += `
+                        <div class="contact-display-card">
+                            <div class="contact-label">📱 WhatsApp</div>
+                            <div class="contact-value">
+                                <a href="https://wa.me/${contactInfo.whatsapp.replace(/\D/g, '')}" target="_blank">${contactInfo.whatsapp}</a>
+                            </div>
                         </div>
-                    </div>
-                `;
-            }
+                    `;
+                }
 
-            if (contactInfo.gmail) {
-                html += `
-                    <div class="contact-item-display">
-                        <div>
-                            <strong>📧 Gmail:</strong><br>
-                            <a href="mailto:${contactInfo.gmail}">${contactInfo.gmail}</a>
+                if (contactInfo.linkedin) {
+                    html += `
+                        <div class="contact-display-card">
+                            <div class="contact-label">🔗 LinkedIn</div>
+                            <div class="contact-value">
+                                <a href="${contactInfo.linkedin}" target="_blank">View Profile</a>
+                            </div>
                         </div>
-                    </div>
-                `;
-            }
+                    `;
+                }
 
-            if (contactInfo.phone) {
-                html += `
-                    <div class="contact-item-display">
-                        <div>
-                            <strong>☎️ Phone:</strong><br>
-                            <a href="tel:${contactInfo.phone}">${contactInfo.phone}</a>
+                if (contactInfo.gmail) {
+                    html += `
+                        <div class="contact-display-card">
+                            <div class="contact-label">📧 Gmail</div>
+                            <div class="contact-value">
+                                <a href="mailto:${contactInfo.gmail}">${contactInfo.gmail}</a>
+                            </div>
                         </div>
-                    </div>
-                `;
-            }
-
-            if (!html) {
-                html = '<p style="color: #999; text-align: center; grid-column: 1/-1;">No contact information added yet. Click "Edit Contact Info" to add your details.</p>';
+                    `;
+                }
             }
 
             contactDisplay.innerHTML = html;
-        }
-
-        function toggleEditContact() {
-            editingContact = !editingContact;
-            const editForm = document.getElementById('contactEditForm');
-            const contactDisplay = document.getElementById('contactDisplay');
-            const editBtn = document.querySelector('.btn-edit');
-
-            if (editingContact) {
-                document.getElementById('whatsappInput').value = contactInfo.whatsapp;
-                document.getElementById('linkedinInput').value = contactInfo.linkedin;
-                document.getElementById('gmailInput').value = contactInfo.gmail;
-                document.getElementById('phoneInput').value = contactInfo.phone;
-                
-                editForm.style.display = 'block';
-                contactDisplay.style.display = 'none';
-                editBtn.style.display = 'none';
-            } else {
-                editForm.style.display = 'none';
-                contactDisplay.style.display = 'grid';
+            
+            // Show edit button only if logged in as developer
+            const editBtn = document.getElementById('editContactBtn');
+            if (accessToken) {
                 editBtn.style.display = 'block';
             }
+        }
+
+        function requestDevPassword() {
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('passwordError').style.display = 'none';
+            document.getElementById('passwordModal').style.display = 'flex';
+        }
+
+        function closePasswordModal() {
+            document.getElementById('passwordModal').style.display = 'none';
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('passwordError').style.display = 'none';
+        }
+
+        function verifyPassword() {
+            const password = document.getElementById('passwordInput').value;
+            if (password === DEVELOPER_PASSWORD) {
+                closePasswordModal();
+                enableEditContact();
+            } else {
+                document.getElementById('passwordError').style.display = 'block';
+                document.getElementById('passwordInput').value = '';
+            }
+        }
+
+        function enableEditContact() {
+            isDevMode = true;
+            document.getElementById('developerNameInput').value = contactInfo.developerName;
+            document.getElementById('whatsappInput').value = contactInfo.whatsapp;
+            document.getElementById('linkedinInput').value = contactInfo.linkedin;
+            document.getElementById('gmailInput').value = contactInfo.gmail;
+            
+            document.querySelector('.contact-display-wrapper').classList.remove('active');
+            document.querySelector('.contact-form-wrapper').classList.add('active');
+            document.getElementById('editContactBtn').style.display = 'none';
+        }
+
+        function saveContactInfo() {
+            contactInfo.developerName = document.getElementById('developerNameInput').value.trim();
+            contactInfo.whatsapp = document.getElementById('whatsappInput').value.trim();
+            contactInfo.linkedin = document.getElementById('linkedinInput').value.trim();
+            contactInfo.gmail = document.getElementById('gmailInput').value.trim();
+            
+            localStorage.setItem('contactInfo', JSON.stringify(contactInfo));
+            cancelEditContact();
+            alert('✅ Contact information updated successfully!');
+        }
+
+        function cancelEditContact() {
+            isDevMode = false;
+            document.querySelector('.contact-form-wrapper').classList.remove('active');
+            document.querySelector('.contact-display-wrapper').classList.add('active');
+            document.getElementById('editContactBtn').style.display = 'block';
+            displayContactInfo();
         }
     </script>
 </body>
