@@ -409,6 +409,209 @@
             50% { opacity: 0.5; }
         }
 
+        .contact-section {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            display: none;
+            backdrop-filter: blur(10px);
+        }
+
+        .contact-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .contact-header h3 {
+            color: #333;
+            margin: 0;
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .contact-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1.5px solid #e8e8e8;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .contact-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .contact-card label {
+            font-size: 0.85em;
+            color: #888;
+            margin-bottom: 8px;
+            display: block;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .contact-card input {
+            width: 100%;
+            padding: 12px;
+            border: 1.5px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+
+        .contact-card input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .contact-card input::placeholder {
+            color: #bbb;
+        }
+
+        .contact-display-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1.5px solid #e8e8e8;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .contact-display-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.15);
+        }
+
+        .contact-label {
+            font-size: 0.75em;
+            color: #999;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .contact-value {
+            font-size: 0.95em;
+            color: #333;
+            word-break: break-all;
+        }
+
+        .contact-value a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .contact-value a:hover {
+            color: #5568d3;
+        }
+
+        .contact-empty {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .contact-buttons-container {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            padding-top: 15px;
+        }
+
+        .btn-edit {
+            background: linear-gradient(135deg, #667eea 0%, #5568d3 100%);
+            color: white;
+            border: none;
+            padding: 11px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-edit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            padding: 11px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-cancel {
+            background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
+            color: #333;
+            border: none;
+            padding: 11px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-cancel:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .contact-form-wrapper {
+            display: none;
+        }
+
+        .contact-display-wrapper {
+            display: none;
+        }
+
+        .contact-display-wrapper.active {
+            display: block;
+        }
+
+        .contact-form-wrapper.active {
+            display: block;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 15px;
@@ -534,6 +737,37 @@
                 <button class="btn-primary" onclick="applyFilter()">Apply Filter</button>
             </div>
         </div>
+
+        <div class="contact-section" id="contactSection" style="display: none;">
+            <h3>📱 Developer Contact Information</h3>
+            <div id="contactDisplay" class="contact-grid"></div>
+            <button class="btn-edit" onclick="toggleEditContact()">✏️ Edit Contact Info</button>
+        </div>
+
+        <div id="contactEditForm" style="display: none;">
+            <div class="contact-grid">
+                <div class="contact-item">
+                    <label>WhatsApp Number</label>
+                    <input type="tel" id="whatsappInput" placeholder="e.g., +92 123 456 7890">
+                </div>
+                <div class="contact-item">
+                    <label>LinkedIn Profile</label>
+                    <input type="url" id="linkedinInput" placeholder="e.g., https://linkedin.com/in/username">
+                </div>
+                <div class="contact-item">
+                    <label>Gmail</label>
+                    <input type="email" id="gmailInput" placeholder="e.g., your.email@gmail.com">
+                </div>
+                <div class="contact-item">
+                    <label>Developer Phone</label>
+                    <input type="tel" id="phoneInput" placeholder="e.g., +92 123 456 7890">
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-save" onclick="saveContactInfo()">💾 Save</button>
+                <button class="btn-cancel" onclick="toggleEditContact()">❌ Cancel</button>
+            </div>
+        </div>
         
         <div class="tasks-section">
             <h2>My Assignments</h2>
@@ -566,6 +800,13 @@
         let autoSyncInterval = null;
         let lastSyncTime = null;
         let updatedAssignments = new Set();
+        let contactInfo = {
+            whatsapp: '',
+            linkedin: '',
+            gmail: '',
+            phone: ''
+        };
+        let editingContact = false;
         
         // PWA Installation
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -675,8 +916,11 @@
             document.getElementById('userInfo').style.display = 'flex';
             document.getElementById('syncSection').style.display = 'block';
             document.getElementById('syncStatus').style.display = 'block';
+            document.getElementById('contactSection').style.display = 'block';
             document.getElementById('userName').textContent = 'Google User';
             
+            loadContactInfo();
+            displayContactInfo();
             syncAssignments(true);
             startAutoSync();
         }
@@ -693,6 +937,8 @@
             document.getElementById('syncSection').style.display = 'none';
             document.getElementById('filterSection').style.display = 'none';
             document.getElementById('syncStatus').style.display = 'none';
+            document.getElementById('contactSection').style.display = 'none';
+            document.getElementById('contactEditForm').style.display = 'none';
             renderAssignments();
         }
 
@@ -1057,6 +1303,103 @@
                 minute: '2-digit'
             };
             return date.toLocaleString('en-US', options);
+        }
+
+        // Contact Info Functions
+        function loadContactInfo() {
+            const savedContact = localStorage.getItem('contactInfo');
+            if (savedContact) {
+                contactInfo = JSON.parse(savedContact);
+            }
+        }
+
+        function saveContactInfo() {
+            contactInfo.whatsapp = document.getElementById('whatsappInput').value.trim();
+            contactInfo.linkedin = document.getElementById('linkedinInput').value.trim();
+            contactInfo.gmail = document.getElementById('gmailInput').value.trim();
+            contactInfo.phone = document.getElementById('phoneInput').value.trim();
+            
+            localStorage.setItem('contactInfo', JSON.stringify(contactInfo));
+            displayContactInfo();
+            toggleEditContact();
+            alert('✅ Contact information saved successfully!');
+        }
+
+        function displayContactInfo() {
+            const contactDisplay = document.getElementById('contactDisplay');
+            let html = '';
+
+            if (contactInfo.whatsapp) {
+                html += `
+                    <div class="contact-item-display">
+                        <div>
+                            <strong>📱 WhatsApp:</strong><br>
+                            <a href="https://wa.me/${contactInfo.whatsapp.replace(/\D/g, '')}" target="_blank">${contactInfo.whatsapp}</a>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (contactInfo.linkedin) {
+                html += `
+                    <div class="contact-item-display">
+                        <div>
+                            <strong>🔗 LinkedIn:</strong><br>
+                            <a href="${contactInfo.linkedin}" target="_blank">${contactInfo.linkedin}</a>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (contactInfo.gmail) {
+                html += `
+                    <div class="contact-item-display">
+                        <div>
+                            <strong>📧 Gmail:</strong><br>
+                            <a href="mailto:${contactInfo.gmail}">${contactInfo.gmail}</a>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (contactInfo.phone) {
+                html += `
+                    <div class="contact-item-display">
+                        <div>
+                            <strong>☎️ Phone:</strong><br>
+                            <a href="tel:${contactInfo.phone}">${contactInfo.phone}</a>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (!html) {
+                html = '<p style="color: #999; text-align: center; grid-column: 1/-1;">No contact information added yet. Click "Edit Contact Info" to add your details.</p>';
+            }
+
+            contactDisplay.innerHTML = html;
+        }
+
+        function toggleEditContact() {
+            editingContact = !editingContact;
+            const editForm = document.getElementById('contactEditForm');
+            const contactDisplay = document.getElementById('contactDisplay');
+            const editBtn = document.querySelector('.btn-edit');
+
+            if (editingContact) {
+                document.getElementById('whatsappInput').value = contactInfo.whatsapp;
+                document.getElementById('linkedinInput').value = contactInfo.linkedin;
+                document.getElementById('gmailInput').value = contactInfo.gmail;
+                document.getElementById('phoneInput').value = contactInfo.phone;
+                
+                editForm.style.display = 'block';
+                contactDisplay.style.display = 'none';
+                editBtn.style.display = 'none';
+            } else {
+                editForm.style.display = 'none';
+                contactDisplay.style.display = 'grid';
+                editBtn.style.display = 'block';
+            }
         }
     </script>
 </body>
